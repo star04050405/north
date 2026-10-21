@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>north. 一路向北</title>
+<meta name="theme-color" content="#0E1420">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  background:#0E1420;color:#EDE8DC;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  background:linear-gradient(178deg,#101A2B 0%,#0E1420 40%,#0A0F18 100%) fixed;
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 18px 70px}
+.hero{padding:40px 0 8px;text-align:center;position:relative}
+.hero .en{font-family:Georgia,serif;font-style:italic;font-size:14px;letter-spacing:.4em;color:#7E8CA8;text-transform:uppercase}
+.hero h1{font-size:34px;font-weight:900;letter-spacing:.06em;margin-top:8px;color:#F2E9D5}
+.hero h1 em{font-style:normal;color:#F5B94B}
+.hero .sub{margin-top:8px;font-size:13px;color:#8D97AB;letter-spacing:.1em}
+.hero .sub b{color:#F5B94B}
+.pbar{margin:26px 0 6px;background:rgba(255,255,255,.07);border-radius:999px;height:14px;overflow:hidden;border:1px solid rgba(245,185,75,.25)}
+.pfill{height:100%;background:linear-gradient(90deg,#D9A441,#F5B94B);border-radius:999px;transition:width .8s cubic-bezier(.2,.8,.2,1);position:relative}
+.pfill:after{content:'';position:absolute;right:0;top:-4px;width:6px;height:22px;background:#FFE9B8;border-radius:4px;box-shadow:0 0 14px #F5B94B}
+.pnum{display:flex;justify-content:space-between;font-size:12px;color:#8D97AB;margin-top:6px}
+.pnum b{color:#F5B94B}
+.stat{display:flex;gap:12px;margin:22px 0 0}
+.stat>div{flex:1;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:14px 12px;text-align:center}
+.stat .n{font-size:26px;font-weight:900;color:#F5B94B;font-variant-numeric:tabular-nums}
+.stat .n small{font-size:12px;font-weight:700;color:#B9A16A;margin-left:2px}
+.stat .l{font-size:11px;color:#8D97AB;margin-top:4px;letter-spacing:.12em}
+.card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:18px 16px;margin-top:18px}
+.card h2{font-size:13px;letter-spacing:.24em;color:#F5B94B;font-weight:800;display:flex;align-items:center;gap:8px}
+.card h2:after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(245,185,75,.4),transparent)}
+.today{margin-top:14px;display:flex;align-items:center;gap:10px}
+.today input{
+  flex:1;min-width:0;background:#fff;color:#20242A;border:1.5px solid #E4C97F;border-radius:14px;
+  padding:13px 14px;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;outline:none;
+}
+.today input:focus{border-color:#F5B94B;box-shadow:0 0 0 3px rgba(245,185,75,.18)}
+.today .unit{font-size:13px;color:#8D97AB}
+.btn{
+  border:0;cursor:pointer;font-family:inherit;font-weight:800;font-size:14.5px;
+  background:linear-gradient(135deg,#F5B94B,#D9A441);color:#1F1503;
+  border-radius:14px;padding:13px 18px;letter-spacing:.05em;
+}
+.btn:active{transform:scale(.96)}
+.qk{display:flex;gap:8px;margin-top:10px}
+.qk button{flex:1;background:rgba(245,185,75,.1);border:1px solid rgba(245,185,75,.3);color:#F5B94B;border-radius:12px;padding:9px 0;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+.qk button:active{background:rgba(245,185,75,.22)}
+.tstate{margin-top:12px;font-size:12.5px;color:#8D97AB;display:flex;align-items:center;gap:6px}
+.tstate .dot{width:8px;height:8px;border-radius:50%;background:#5A6478}
+.tstate.on .dot{background:#7FC98F;box-shadow:0 0 8px rgba(127,201,143,.7)}
+.tstate b{color:#EDE8DC}
+#map{height:340px;border-radius:20px;margin-top:18px;border:1px solid rgba(245,185,75,.22);z-index:1;background:#101827}
+.leaflet-container{background:#101827}
+.leaflet-tile-pane{filter:brightness(.62) saturate(.55) contrast(1.05)}
+.me{position:relative}
+.me .pulse{position:absolute;inset:-14px;border-radius:50%;border:2px solid #F5B94B;animation:pul 1.8s infinite}
+@keyframes pul{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.me .face{font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+.stn{width:26px;height:26px;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:900;transform:rotate(-45deg)}
+.stn span{transform:rotate(45deg)}
+.stn.hit{background:#F5B94B;color:#1F1503;box-shadow:0 0 12px rgba(245,185,75,.8)}
+.stn.no{background:#39445A;color:#8D97AB;border:1.5px solid rgba(255,255,255,.14)}
+.route{margin-top:6px}
+.rt{display:flex;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.06);position:relative}
+.rt:last-child{border-bottom:0}
+.rt .rb{flex:none;width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);filter:grayscale(1) opacity(.45)}
+.rt.hit .rb{filter:none;background:rgba(245,185,75,.13);border-color:rgba(245,185,75,.45);box-shadow:0 4px 14px rgba(245,185,75,.15)}
+.rt .rt-t{flex:1;min-width:0}
+.rt .rn{font-size:15px;font-weight:800;color:#C7CDDD}
+.rt.hit .rn{color:#F5B94B}
+.rt .rd{font-size:12px;color:#8D97AB;margin-top:3px}
+.rt .stamp{font-size:11px;color:#7FC98F;margin-top:3px}
+.toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(16px);background:#1A2436;color:#F5B94B;border:1px solid rgba(245,185,75,.45);padding:12px 22px;border-radius:999px;font-size:13.5px;font-weight:800;z-index:300;opacity:0;pointer-events:none;transition:.3s;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:86vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.pop{position:fixed;inset:0;z-index:200;background:rgba(8,12,20,.82);display:none;align-items:center;justify-content:center}
+.pop.open{display:flex}
+.pop .pc{background:linear-gradient(160deg,#1C2A44,#101A2B);border:1px solid rgba(245,185,75,.4);border-radius:24px;padding:34px 30px;text-align:center;max-width:300px;animation:pin .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pin{from{transform:scale(.6) translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.pop .pe{font-size:58px;filter:drop-shadow(0 6px 18px rgba(245,185,75,.35))}
+.pop .pt{font-size:19px;font-weight:900;color:#F5B94B;margin-top:12px;letter-spacing:.06em}
+.pop .pd{font-size:12.5px;color:#9AA5BC;margin-top:8px;line-height:1.8}
+.pop .btn{margin-top:18px;width:100%}
+.aur{display:none;position:fixed;inset:0;z-index:210;background:#05080F;overflow:hidden}
+.aur.open{display:block}
+.aur .band{position:absolute;left:-30%;width:160%;height:120px;filter:blur(28px);opacity:.75;animation:sway 7s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:translateX(-4%) skewX(-8deg)}50%{transform:translateX(6%) skewX(6deg)}}
+.aur .fin{text-align:center;color:#F2E9D5;z-index:2;position:relative;padding-top:24vh}
+.aur .fin .t1{font-size:13px;letter-spacing:.5em;color:#7FC98F}
+.aur .fin .t2{font-size:40px;font-weight:900;margin-top:14px;color:#F5B94B}
+.aur .fin .t3{font-size:14px;color:#9AA5BC;margin-top:14px;line-height:2}
+.aur .fin .btn{margin-top:26px;padding:14px 34px}
+.hi{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13.5px}
+.hi .d{color:#8D97AB;font-variant-numeric:tabular-nums}
+.hi .v{color:#EDE8DC;font-weight:700;font-variant-numeric:tabular-nums}
+.hi .k{color:#F5B94B;font-variant-numeric:tabular-nums}
+.empty{padding:14px 2px;color:#5A6478;font-size:13px;text-align:center;letter-spacing:.1em}
+.note{font-size:12px;color:#5F6B82;line-height:1.9;margin-top:14px}
+.note b{color:#8D97AB}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="en">NORTH · STEP BY STEP</div>
+    <h1>一路<em>向北</em></h1>
+    <div class="sub">北京 → 漠河 · <b>2065 km</b> · 你的每一天步数，都在往北走</div>
+    <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+    <div class="pnum"><span>北京 <b>N39.9°</b></span><span id="pct">0%</span><span>漠河 <b>N53.5°</b></span></div>
+  </div>
+
+  <div class="stat">
+    <div><div class="n" id="stKm">0<small>km</small></div><div class="l">累计徒步</div></div>
+    <div><div class="n" id="stDays">0<small>天</small></div><div class="l">在路上</div></div>
+    <div><div class="n" id="stAvg">—</div><div class="l">日均步数</div></div>
+  </div>
+
+  <div class="card">
+    <h2>今日步数</h2>
+    <div class="today">
+      <input id="inSteps" type="number" inputmode="numeric" min="0" max="120000" placeholder="输入今天的步数">
+      <span class="unit">步</span>
+    </div>
+    <div class="qk">
+      <button data-q="2000">+2000</button>
+      <button data-q="5000">+5000</button>
+      <button data-q="8000">+8000</button>
+      <button data-q="12000">+12000</button>
+    </div>
+    <button class="btn" id="btnGo" style="width:100%;margin-top:12px">记入行程 → 往北走</button>
+    <div class="tstate" id="tstate"><span class="dot"></span><span id="tstateTxt">今天还没出发</span></div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="card">
+    <h2>途经站点 · 徽章</h2>
+    <div class="route" id="route"></div>
+  </div>
+
+  <div class="card">
+    <h2>步行日志</h2>
+    <div id="his"></div>
+  </div>
+
+  <div class="note">
+    <b>怎么玩：</b>每天打开，把手机计步里的步数输进来（1 步 ≈ 0.71 米），点「记入行程」——你就在地图上往北走了。路过一座城，点亮一枚徽章；走到漠河，据说能看到极光。<b>漏走的路不会消失，慢一点也没关系，方向对就行。</b>
+  </div>
+</div>
+
+<div class="pop" id="pop">
+  <div class="pc">
+    <div class="pe" id="popE">🏔️</div>
+    <div class="pt" id="popT">抵达 · 承德</div>
+    <div class="pd" id="popD">……</div>
+    <button class="btn" id="popOk">收下徽章 →</button>
+  </div>
+</div>
+
+<div class="aur" id="aur">
+  <div class="band" style="top:6vh;background:linear-gradient(90deg,transparent,#3AC98F44,#7FC98F66,transparent)"></div>
+  <div class="band" style="top:18vh;background:linear-gradient(90deg,transparent,#F5B94B33,#E88B8B44,transparent);animation-delay:-2.4s"></div>
+  <div class="band" style="top:32vh;background:linear-gradient(90deg,transparent,#7FA8C944,#3AC98F55,transparent);animation-delay:-4.2s"></div>
+  <div class="fin">
+    <div class="t1">N53.5° · CHINA'S NORTH END</div>
+    <div class="t2">漠河，到了</div>
+    <div class="t3" id="finD"></div>
+    <button class="btn" id="aurOk">再看一眼这张地图</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KM_PER_STEP=0.00071;
+const STOPS=[
+ ['北京','🚉',0,'从天安门出发。往北，把城市留在身后。'],
+ ['廊坊','⛩️',55,'京津走廊的第一站，今晚宿在廊坊的夜色里。'],
+ ['承德','🏞️',230,'避暑山庄的湖还没结冰，皇帝夏天躲的地方，冬天更安静。'],
+ ['赤峰','🐎',415,'红山文化玉龙的故乡——中华第一龙从这里出土。'],
+ ['通辽','🌾',645,'科尔沁草原，风吹过来只有草和云的声音。'],
+ ['乌兰浩特','🦅',900,'蒙语意思是「红色的城」。再往北，人越来越少了。'],
+ ['齐齐哈尔','🦢',1250,'丹顶鹤在扎龙湿地起落——鹤的航班比人准时。'],
+ ['嫩江','🌽',1460,'大豆和麦子的地界，十字路口的小城，灯火稀疏但很暖。'],
+ ['加格达奇','🌲',1690,'大兴安岭的门户。名字是鄂伦春语：樟子松生长的地方。'],
+ ['塔河','🦌',1860,'北纬 52°。森林公路开始出现雾凇，白桦树站满了路两侧。'],
+ ['漠河','🌌',2065,'中国最北点。传说在北纬 53.5° 的夜里，抬头就是极光。']
+];
+const SEG=[];for(let i=1;i<STOPS.length;i++)SEG.push(STOPS[i][2]-STOPS[i-1][2]);
+const TOTAL=STOPS[STOPS.length-1][2];
+const KEY='north-hike-v1';
+let st=JSON.parse(localStorage.getItem(KEY)||'{}');
+st.log=st.log||{};st.stopDates=st.stopDates||[];
+function save(){localStorage.setItem(KEY,JSON.stringify(st))}
+function today(){return new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'})}
+function $id(x){return document.getElementById(x)}
+function totalSteps(){return Object.values(st.log).reduce((a,b)=>a+b,0)}
+function totalKm(){return totalSteps()*KM_PER_STEP}
+
+const PTS=[[39.9042,116.4074],[39.5228,116.7036],[40.9514,117.9633],[42.2576,118.8870],[43.6174,122.2631],[46.0719,122.0703],[47.3542,123.9180],[49.1852,125.2217],[50.4246,124.1167],[52.3353,124.7100],[53.4720,122.5377]];
+function posAt(km){
+  let acc=0;
+  for(let i=0;i<SEG.length;i++){
+    if(km<=acc+SEG[i]||i===SEG.length-1){
+      const t=Math.min(1,Math.max(0,(km-acc)/SEG[i]));
+      const a=PTS[i],b=PTS[i+1];
+      return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+    }
+    acc+=SEG[i];
+  }
+}
+
+const map=L.map('map',{zoomControl:false,attributionControl:false});
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+L.polyline(PTS,{color:'#F5B94B',weight:3,opacity:.28,dashArray:'2 8'}).addTo(map);
+const lineWalk=L.polyline([],{color:'#F5B94B',weight:4.5,opacity:.95}).addTo(map);
+const mk={};
+STOPS.forEach((s,i)=>{
+  mk[i]=L.marker(PTS[i],{icon:L.divIcon({className:'',html:'<div class="stn no" id="mk'+i+'"><span>'+(i===0?'起':i===STOPS.length-1?'终':i)+'</span></div>',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map);
+});
+const me=L.marker(PTS[0],{icon:L.divIcon({className:'',html:'<div class="me"><div class="pulse"></div><div class="face">🚶</div></div>',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map);
+map.fitBounds(L.latLngBounds(PTS).pad(.08));
+setTimeout(()=>map.invalidateSize(),400);
+
+function hitIdx(km){let h=0;STOPS.forEach((s,i)=>{if(s[2]<=km+0.001)h=i;});return h;}
+function render(){
+  const km=totalKm(),pct=Math.min(100,km/TOTAL*100);
+  $id('pfill').style.width=pct+'%';
+  $id('pct').textContent=Math.floor(pct)+'% · '+Math.round(km)+' km';
+  $id('stKm').innerHTML=Math.round(km)+'<small>km</small>';
+  $id('stDays').innerHTML=Object.keys(st.log).length+'<small>天</small>';
+  $id('stAvg').textContent=Object.keys(st.log).length?Math.round(totalSteps()/Object.keys(st.log).length).toLocaleString():'—';
+  const walked=[PTS[0]];
+  let acc=0;
+  for(let i=0;i<SEG.length;i++){
+    if(km>=acc+SEG[i]){walked.push(PTS[i+1]);}
+    else{const t=Math.max(0,(km-acc)/SEG[i]);const a=PTS[i],b=PTS[i+1];walked.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);break;}
+    acc+=SEG[i];
+  }
+  lineWalk.setLatLngs(walked);
+  me.setLatLng(posAt(Math.min(km,TOTAL)));
+  STOPS.forEach((s,i)=>{
+    const el=$id('mk'+i);if(!el)return;
+    if(s[2]<=km+0.001){el.classList.remove('no');el.classList.add('hit');}
+  });
+  $id('route').innerHTML=STOPS.map((s,i)=>{
+    const done=s[2]<=km+0.001;
+    const date=st.stopDates[i];
+    return '<div class="rt'+(done?' hit':'')+'"><div class="rb">'+s[1]+'</div>'+
+      '<div class="rt-t"><div class="rn">'+s[0]+' <span style="font-weight:600;color:#5F6B82;font-size:11.5px">· '+s[2]+' km</span></div>'+
+      '<div class="rd">'+s[3]+'</div>'+
+      (done?'<div class="stamp">✦ 已抵达'+(date&&i>0?' · '+date:'')+'</div>':'')+
+      '</div></div>';
+  }).join('');
+  const ds=Object.keys(st.log).sort().reverse();
+  $id('his').innerHTML=ds.length?ds.map(d=>
+    '<div class="hi"><span class="d">'+d+'</span><span><span class="v">'+st.log[d].toLocaleString()+' 步</span> <span class="k">≈ '+(st.log[d]*KM_PER_STEP).toFixed(1)+' km</span></span></div>').join('')
+    :'<div class="empty">日志还是空的 —— 今天是第一天</div>';
+  const t=today();
+  if(st.log[t]){$id('tstate').classList.add('on');$id('tstateTxt').innerHTML='今天已走 <b>'+st.log[t].toLocaleString()+'</b> 步（重新输入可覆盖）';}
+  else{$id('tstate').classList.remove('on');$id('tstateTxt').textContent='今天还没出发 —— 走几步都算数';}
+}
+function refreshStopDates(){
+  const ds=Object.keys(st.log).sort();
+  STOPS.forEach((s,i)=>{
+    if(i>0&&s[2]<=totalKm()+0.001&&!st.stopDates[i])st.stopDates[i]=ds[ds.length-1]||today();
+  });
+}
+function toast(t){const e=$id('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400);}
+function submit(v){
+  v=Math.round(v);
+  if(!v||v<=0){toast('输入今天的步数，走几步都算数');return;}
+  if(v>120000){toast('这个步数连猎豹都要佩服，但先按常识来');return;}
+  const beforeHit=hitIdx(totalKm());
+  const t=today();
+  st.log[t]=v;
+  const after=totalKm(),afterHit=hitIdx(after);
+  refreshStopDates();
+  save();render();
+  $id('inSteps').value='';
+  const gained=Math.round(v*KM_PER_STEP*10)/10;
+  if(afterHit>beforeHit){
+    const s=STOPS[afterHit];
+    $id('popE').textContent=s[1];
+    $id('popT').textContent='抵达 · '+s[0];
+    $id('popD').innerHTML=s[3]+'<br><span style="color:#F5B94B">今天走了 '+gained+' km</span>';
+    $id('pop').classList.add('open');
+    map.flyTo(PTS[afterHit],7,{duration:1.2});
+  }else{
+    const nx=STOPS[afterHit+1];
+    toast(nx?('今天 +'+gained+' km · 离「'+nx[0]+'」还有 '+Math.max(0,Math.round(nx[2]-after))+' km'):'已到终点');
+    map.flyTo(posAt(Math.min(after,TOTAL)),7,{duration:1});
+  }
+  if(after>=TOTAL&&!st.fin){st.fin=true;save();setTimeout(showAurora,2200);}
+}
+$id('btnGo').addEventListener('click',()=>submit(parseFloat($id('inSteps').value)||0));
+$id('inSteps').addEventListener('keydown',e=>{if(e.key==='Enter')submit(parseFloat(e.target.value)||0)});
+document.querySelectorAll('.qk button').forEach(b=>b.addEventListener('click',()=>{
+  $id('inSteps').value=(parseFloat($id('inSteps').value)||0)+parseInt(b.dataset.q);
+}));
+$id('popOk').addEventListener('click',()=>$id('pop').classList.remove('open'));
+function showAurora(){
+  const a=$id('aur');a.classList.add('open');
+  $id('finD').innerHTML='你用了 '+Object.keys(st.log).length+' 天，走了 '+totalSteps().toLocaleString()+' 步<br>从北纬 39.9° 走到 53.5° —— 每一步都算数。';
+}
+$id('aurOk').addEventListener('click',()=>{$id('aur').classList.remove('open');map.flyTo(PTS[PTS.length-1],11,{duration:1.5});});
+refreshStopDates();render();
+</script>
+</body>
+</html>
